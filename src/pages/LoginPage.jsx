@@ -21,28 +21,43 @@ export default function Login() {
   const showToast = (msg, type = "success") => {
     setToast({ show: true, msg, type });
   };
+
 const handleLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const token = await loginUser(credentials);
+    try {
+      const token = await loginUser(credentials);
 
-    if (!token || token === "Fail") {
-      showToast("Invalid Credentials", "danger");
-      return;
+      if (!token || token === "Fail") {
+        showToast("Invalid Credentials", "danger");
+        return;
+      }
+
+      saveAuthData({ token });
+      login();
+
+      showToast("Login Successful", "success");
+
+      try {
+        const decodedPayload = JSON.parse(atob(token.split('.')[1]));
+        
+        const isUserAdmin = JSON.stringify(decodedPayload).includes("ADMIN");
+
+        if (isUserAdmin) {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      } catch (decodeError) {
+        console.error("Failed to decode token", decodeError);
+        navigate("/dashboard");
+      }
+
+    } catch (err) {
+      showToast(err?.message || "Login Failed", "danger");
     }
+  };
 
-    // Save token and decode inside util
-    saveAuthData({ token });
-    login();
-
-    showToast("Login Successful", "success");
-    navigate("/dashboard");
-
-  } catch (err) {
-    showToast(err?.message || "Login Failed", "danger");
-  }
-};
   return (
     <Container className="d-flex justify-content-center mt-5">
       <Card className="p-4 shadow" style={{ width: "400px" }}>
