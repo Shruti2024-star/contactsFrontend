@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { loginUser } from "../services/UserService";
-import { jwtDecode } from "jwt-decode";
+import { useContext } from "react";
+import { AuthContext } from "../context/authContext";
 import { Container, Card, Form, Button, Toast } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import {saveAuthData} from "../utils/authUtil"
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
+
 
   const [credentials, setCredentials] = useState({
     email: "",
@@ -17,43 +21,28 @@ export default function Login() {
   const showToast = (msg, type = "success") => {
     setToast({ show: true, msg, type });
   };
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  try {
+    const token = await loginUser(credentials);
 
-    try {
-      const token = await loginUser(credentials);
-
-      if (!token || token === "Fail") {
-        showToast("Invalid Credentials", "danger");
-        return;
-      }
-
-      // Decode JWT (email + role)
-      const decoded = jwtDecode(token);
-
-      localStorage.setItem("token", token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: decoded.sub,
-          role: decoded.role
-        })
-      );
-
-      showToast("Login Successful ", "success");
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
-
-    } catch (err) {
-      showToast(err || "Login Failed", "danger"
-        
-      );
+    if (!token || token === "Fail") {
+      showToast("Invalid Credentials", "danger");
+      return;
     }
-  };
 
+    // Save token and decode inside util
+    saveAuthData({ token });
+    login();
+
+    showToast("Login Successful", "success");
+    navigate("/dashboard");
+
+  } catch (err) {
+    showToast(err?.message || "Login Failed", "danger");
+  }
+};
   return (
     <Container className="d-flex justify-content-center mt-5">
       <Card className="p-4 shadow" style={{ width: "400px" }}>
